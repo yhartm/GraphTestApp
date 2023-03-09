@@ -4,41 +4,155 @@ using Microsoft.Graph;
 using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
 using Microsoft.Identity.Client;
+using Newtonsoft.Json;
 
 
 public class GraphHelper
 {
     private static Settings? _settings;
-    private static DeviceCodeCredential? _usernamePasswordCredential;
+    private static UsernamePasswordCredential? _credential;
     private static GraphServiceClient? _userClient;
+    private static HttpClient _httpClient;
+    private static AuthProvider provider;
+    
     private static string username = "o365_test@peakboard.com";
     private static string password = "I3oP5Q%J1im0qOzY";
-    private static AuthenticationRecord _record;
+
+    private static string accessToken;
+    private static string refreshToken;
+
+    private const string AUTHORIZATION_URL = "https://login.microsoftonline.com/{0}/oauth2/v2.0/devicecode";  
+    private const string ALL_SCOPE_AUTHORIZATIONS = "user.read offline_access";
+    private const string TOKEN_ENDPOINT_URL = "https://login.microsoftonline.com/{0}/oauth2/v2.0/token";
 
     public static void InitializeGraphForUserAuth(Settings settings,
         Func<DeviceCodeInfo, CancellationToken, Task> deviceCodePrompt)
     {
         _settings = settings;
 
-        _usernamePasswordCredential = new DeviceCodeCredential(
+        /*_credential = new DeviceCodeCredential(
             deviceCodePrompt,
             settings.TenantId, 
-            settings.ClientId);
+            settings.ClientId);*/
 
-        _userClient = new GraphServiceClient(_usernamePasswordCredential, settings.GraphUserScopes);
+        _credential = new UsernamePasswordCredential(username, password, settings.TenantId, settings.ClientId);
+        
+        _userClient = new GraphServiceClient(_credential, settings.GraphUserScopes);
 
     }
 
-    public static async Task Authenticate()
+    public static async Task InitGraph(Settings settings)
+    {
+        _settings = settings;
+        _httpClient = new HttpClient();
+        
+        // authorize
+        string deviceCode = await AuthorizeAsync();
+        Console.WriteLine("Press enter to proceed after authentication");
+        Console.ReadLine();
+        
+        // get tokens
+        await GetTokensAsync(deviceCode);
+        
+        // init Authentication Provider
+        provider = new AuthProvider(accessToken, _settings.GraphUserScopes);
+        _userClient = new GraphServiceClient(_httpClient, provider);
+
+    }
+
+    private static async Task<string> AuthorizeAsync()
+    {
+        // generate url for http request
+        string url = string.Format(AUTHORIZATION_URL, _settings.TenantId);
+        
+        // generate body for http request
+        Dictionary<string, string> values = new Dictionary<string, string>
+        {
+            {"client_id", _settings.ClientId},
+            {"scope", ALL_SCOPE_AUTHORIZATIONS}
+        };
+        
+        FormUrlEncodedContent data = new FormUrlEncodedContent(values);
+        
+        // make http request to get device code for authentication
+        HttpResponseMessage response = await _httpClient.PostAsync(url, data);
+        string jsonString = await response.Content.ReadAsStringAsync();
+        var authorizationResponse = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonString);
+        
+        // get device code and authentication message
+        authorizationResponse.TryGetValue("device_code", out var deviceCode);
+        authorizationResponse.TryGetValue("message", out var message);
+        
+        Console.WriteLine(message);
+
+        return deviceCode;
+    }
+
+    private static async Task GetTokensAsync(string deviceCode)
+    {
+        // generate url for http request
+        string url = string.Format(TOKEN_ENDPOINT_URL, _settings.TenantId);
+        
+        // generate body for http request
+        var values = new Dictionary<string, string>
+        {
+            { "grant_type", "urn:ietf:params:oauth:grant-type:device_code" },
+            { "client_id", _settings.ClientId },
+            { "device_code", deviceCode }
+        };
+        
+        FormUrlEncodedContent data = new FormUrlEncodedContent(values);
+        
+        // make http request to get access token and refresh token
+        HttpResponseMessage response = await _httpClient.PostAsync(url, data);
+        string jsonString = await response.Content.ReadAsStringAsync();
+        var tokenResponse = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonString);
+        
+        // store token values
+        tokenResponse.TryGetValue("refresh_token", out refreshToken);
+        tokenResponse.TryGetValue("access_token", out accessToken);
+    }
+
+    private static async Task RefreshTokensAsync()
+    {
+        // generate url for http request
+        string url = String.Format(TOKEN_ENDPOINT_URL, _settings.TenantId);
+        
+        // generate body for http requestd
+        var values = new Dictionary<string, string>
+        {
+            { "client_id", _settings.ClientId },
+            { "grant_type", "refresh_token" },
+            { "scope", ALL_SCOPE_AUTHORIZATIONS },
+            { "refresh_token", refreshToken }
+        };
+
+        var data = new FormUrlEncodedContent(values);
+        
+        // make http request to get new tokens
+        HttpResponseMessage response = await _httpClient.PostAsync(url, data);
+        string jsonString = await response.Content.ReadAsStringAsync();
+        var tokenResponse = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonString);
+        
+        tokenResponse.TryGetValue("access_token", out accessToken);
+        tokenResponse.TryGetValue("refresh_token", out refreshToken);
+        
+        // refresh access token in auth-provider
+        provider.Token = accessToken;
+
+    }
+
+
+    /*public static async Task Authenticate()
     {
         var context = new TokenRequestContext(_settings.GraphUserScopes);
-        _record = await _usernamePasswordCredential.AuthenticateAsync(context);
-    }
+        await _credential.AuthenticateAsync(context);
+    }*/
 
     public static async Task<string> GetUserTokenAsync()
     {
-        // null checking
-        _ = _usernamePasswordCredential ??
+        /*/ null checking
+        _ = _credential ??
             throw new NullReferenceException("Graph has not been initialized for user auth");
         
         _ = _settings?.GraphUserScopes ?? throw new ArgumentNullException("Argument 'scopes' cannot be null");
@@ -47,8 +161,8 @@ public class GraphHelper
         var context = new TokenRequestContext(_settings.GraphUserScopes);
 
 
-        var response = await _usernamePasswordCredential.GetTokenAsync(context);
-        return response.Token;
+        var response = await _credential.GetTokenAsync(context);*/
+        return accessToken;
     }
 
     public static Task<User?> GetUserAsync()

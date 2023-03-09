@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\YannisHartmann\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\GraphTutorial.csproj": {}
+    "C:\\Users\\Yannis\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\GraphTutorial.csproj": {}
   },
   "projects": {
-    "C:\\Users\\YannisHartmann\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\GraphTutorial.csproj": {
+    "C:\\Users\\Yannis\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\GraphTutorial.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\YannisHartmann\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\GraphTutorial.csproj",
+        "projectUniqueName": "C:\\Users\\Yannis\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\GraphTutorial.csproj",
         "projectName": "GraphTutorial",
-        "projectPath": "C:\\Users\\YannisHartmann\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\GraphTutorial.csproj",
-        "packagesPath": "C:\\Users\\YannisHartmann\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\YannisHartmann\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\obj\\",
+        "projectPath": "C:\\Users\\Yannis\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\GraphTutorial.csproj",
+        "packagesPath": "C:\\Users\\Yannis\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Yannis\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\YannisHartmann\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\Yannis\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
@@ -85,7 +85,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.201\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.103\\RuntimeIdentifierGraph.json"
         }
       }
     }

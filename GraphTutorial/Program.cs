@@ -10,8 +10,8 @@ var settings = Settings.LoadSettings();
 WebDriver? edgedriver = null;
 
 // Initialize Graph
-InitializeGraph(settings);
-await GraphHelper.Authenticate();
+// InitializeGraph(settings);
+await GraphHelper.InitGraph(settings);
 
 // Greet the user by name
 //await GreetUserAsync();
@@ -342,7 +342,7 @@ async Task AdvancedApiCalls()
                 valid = true;
                 break;
             case "auth": 
-                await GraphHelper.Authenticate();
+                //await GraphHelper.Authenticate();
                 valid = true;
                 break;
             case "_":
