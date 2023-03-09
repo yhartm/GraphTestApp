@@ -3,36 +3,51 @@ using Azure.Identity;
 using Microsoft.Graph;
 using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
+using Microsoft.Identity.Client;
 
 
 public class GraphHelper
 {
     private static Settings? _settings;
-    private static DeviceCodeCredential? _deviceCodeCredential;
+    private static DeviceCodeCredential? _usernamePasswordCredential;
     private static GraphServiceClient? _userClient;
+    private static string username = "o365_test@peakboard.com";
+    private static string password = "I3oP5Q%J1im0qOzY";
+    private static AuthenticationRecord _record;
 
     public static void InitializeGraphForUserAuth(Settings settings,
         Func<DeviceCodeInfo, CancellationToken, Task> deviceCodePrompt)
     {
         _settings = settings;
 
-        _deviceCodeCredential = new DeviceCodeCredential(deviceCodePrompt, settings.TenantId, settings.ClientId);
+        _usernamePasswordCredential = new DeviceCodeCredential(
+            deviceCodePrompt,
+            settings.TenantId, 
+            settings.ClientId);
 
-        _userClient = new GraphServiceClient(_deviceCodeCredential, settings.GraphUserScopes);
+        _userClient = new GraphServiceClient(_usernamePasswordCredential, settings.GraphUserScopes);
+
     }
-    
+
+    public static async Task Authenticate()
+    {
+        var context = new TokenRequestContext(_settings.GraphUserScopes);
+        _record = await _usernamePasswordCredential.AuthenticateAsync(context);
+    }
 
     public static async Task<string> GetUserTokenAsync()
     {
         // null checking
-        _ = _deviceCodeCredential ??
+        _ = _usernamePasswordCredential ??
             throw new NullReferenceException("Graph has not been initialized for user auth");
         
         _ = _settings?.GraphUserScopes ?? throw new ArgumentNullException("Argument 'scopes' cannot be null");
         
         // request token with given scopes
         var context = new TokenRequestContext(_settings.GraphUserScopes);
-        var response = await _deviceCodeCredential.GetTokenAsync(context);
+
+
+        var response = await _usernamePasswordCredential.GetTokenAsync(context);
         return response.Token;
     }
 

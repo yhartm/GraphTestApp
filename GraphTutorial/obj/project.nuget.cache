@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "WVBD/7bnbOp4wi5gkuTKUiLev0ioBvEVhUpIeVS8Z3JevwT4p4SHt01LQyN12TYJAscZxAAByH0MA8pqhSgZFw==",
+  "dgSpecHash": "Bvr4ywNpTU2gRGTGcaTNgPAs9q1mGdvQaEMyWvPNb6DrdmpipIUaIkG5rrrDdBl3m59jj9KkwxvwUxeepODhUg==",
   "success": true,
-  "projectFilePath": "C:\\Users\\YannisHartmann\\Documents\\Graph\\MS_Graph\\TestApp\\GraphTutorial\\GraphTutorial.csproj",
+  "projectFilePath": "C:\\Users\\YannisHartmann\\Documents\\GitHub\\GraphTestApp\\GraphTutorial\\GraphTutorial.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\YannisHartmann\\.nuget\\packages\\azure.core\\1.28.0\\azure.core.1.28.0.nupkg.sha512",
     "C:\\Users\\YannisHartmann\\.nuget\\packages\\azure.identity\\1.8.2\\azure.identity.1.8.2.nupkg.sha512",

@@ -11,9 +11,10 @@ WebDriver? edgedriver = null;
 
 // Initialize Graph
 InitializeGraph(settings);
+await GraphHelper.Authenticate();
 
 // Greet the user by name
-await GreetUserAsync();
+//await GreetUserAsync();
 /*var count = await GraphHelper.GetUserCountAsync();
 Console.WriteLine($"Currently are {count} users registered.");*/
 
@@ -338,6 +339,10 @@ async Task AdvancedApiCalls()
                 break;
             case "new todo":
                 await AddTodoAsync();
+                valid = true;
+                break;
+            case "auth": 
+                await GraphHelper.Authenticate();
                 valid = true;
                 break;
             case "_":
