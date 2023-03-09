@@ -42,6 +42,8 @@ while (choice != 0)
         choice = -1;
     }
 
+    await GraphHelper.CheckTokenLifetimeAsync();
+
     switch(choice)
     {
         case 0:

@@ -20,6 +20,8 @@ public class GraphHelper
 
     private static string accessToken;
     private static string refreshToken;
+    private static string tokenLifetime;
+    private static long millis;
 
     private const string AUTHORIZATION_URL = "https://login.microsoftonline.com/{0}/oauth2/v2.0/devicecode";  
     private const string ALL_SCOPE_AUTHORIZATIONS = "user.read offline_access";
@@ -111,6 +113,8 @@ public class GraphHelper
         // store token values
         tokenResponse.TryGetValue("refresh_token", out refreshToken);
         tokenResponse.TryGetValue("access_token", out accessToken);
+        tokenResponse.TryGetValue("expires_in", out tokenLifetime);
+        millis = DateTimeOffset.Now.ToUnixTimeMilliseconds();
     }
 
     private static async Task RefreshTokensAsync()
@@ -136,10 +140,23 @@ public class GraphHelper
         
         tokenResponse.TryGetValue("access_token", out accessToken);
         tokenResponse.TryGetValue("refresh_token", out refreshToken);
+        tokenResponse.TryGetValue("expires_in", out tokenLifetime);
+        millis = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         
         // refresh access token in auth-provider
         provider.Token = accessToken;
 
+    }
+
+    public static async Task CheckTokenLifetimeAsync()
+    {
+        long temp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+        if (temp - millis > Int32.Parse(tokenLifetime))
+        {
+            Console.Write("Refreshing Tokens...");
+            await RefreshTokensAsync();
+            Console.WriteLine("Done!");
+        }
     }
 
 
@@ -170,6 +187,7 @@ public class GraphHelper
         // Ensure client isn't null
         _ = _userClient ??
             throw new NullReferenceException("Graph has not been initialized for user auth");
+        
 
         return _userClient.Me
             .GetAsync((requestConfiguration) =>
