@@ -305,6 +305,12 @@ WebDriver OpenWebBrowser(string url, string code)
     return driver;
 }
 
+async Task GetMeAsync()
+{
+    var me = await GraphHelper.GetMeAsync();
+    Console.WriteLine(me);
+}
+
 async Task AdvancedApiCalls()
 {
     // extends program main loop
@@ -345,6 +351,10 @@ async Task AdvancedApiCalls()
                 break;
             case "auth": 
                 //await GraphHelper.Authenticate();
+                valid = true;
+                break;
+            case "me":
+                await GetMeAsync();
                 valid = true;
                 break;
             case "_":

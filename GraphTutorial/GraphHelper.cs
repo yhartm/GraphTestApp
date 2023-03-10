@@ -1,9 +1,14 @@
-﻿using Azure.Core;
+﻿using System.Diagnostics;
+using System.Security.Authentication;
+using Azure.Core;
 using Azure.Identity;
+using GraphTutorial;
 using Microsoft.Graph;
 using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
 using Microsoft.Identity.Client;
+using Microsoft.Kiota.Abstractions.Authentication;
+using Microsoft.Kiota.Authentication.Azure;
 using Newtonsoft.Json;
 
 
@@ -14,6 +19,8 @@ public class GraphHelper
     private static GraphServiceClient? _userClient;
     private static HttpClient _httpClient;
     private static AuthProvider provider;
+
+    private static RequestBuilder _builder;
     
     private static string username = "o365_test@peakboard.com";
     private static string password = "I3oP5Q%J1im0qOzY";
@@ -50,27 +57,38 @@ public class GraphHelper
         
         // authorize
         string deviceCode = await AuthorizeAsync();
-        Console.WriteLine("Press enter to proceed after authentication");
-        Console.ReadLine();
+        _ = deviceCode ?? throw new Exception("Authorization failed");
         
         // get tokens
-        await GetTokensAsync(deviceCode);
+        bool success = false;
+        int requestAttempts = 0;
+        Thread.Sleep(10000);
+        while (!success && requestAttempts < 20)
+        {
+            // try to receive tokens 20 times
+            success = await GetTokensAsync(deviceCode);
+            Thread.Sleep(3000);
+            requestAttempts++;
+        }
+        // abort if no success
+        if (requestAttempts == 20) throw new Exception("Failed to receive tokens 20 times. Aborting...");
         
-        // init Authentication Provider
+        // init authentication provider
         provider = new AuthProvider(accessToken, _settings.GraphUserScopes);
         _userClient = new GraphServiceClient(_httpClient, provider);
+        _builder = new RequestBuilder(accessToken);
 
     }
 
-    private static async Task<string> AuthorizeAsync()
+    private static async Task<string?> AuthorizeAsync()
     {
         // generate url for http request
-        string url = string.Format(AUTHORIZATION_URL, _settings.TenantId);
+        string url = string.Format(AUTHORIZATION_URL, _settings?.TenantId);
         
         // generate body for http request
         Dictionary<string, string> values = new Dictionary<string, string>
         {
-            {"client_id", _settings.ClientId},
+            {"client_id", _settings?.ClientId},
             {"scope", ALL_SCOPE_AUTHORIZATIONS}
         };
         
@@ -82,15 +100,20 @@ public class GraphHelper
         var authorizationResponse = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonString);
         
         // get device code and authentication message
-        authorizationResponse.TryGetValue("device_code", out var deviceCode);
-        authorizationResponse.TryGetValue("message", out var message);
-        
-        Console.WriteLine(message);
+        string? deviceCode = null;
+        string? message = null;
+        if (authorizationResponse != null)
+        {
+            authorizationResponse.TryGetValue("device_code", out deviceCode);
+            authorizationResponse.TryGetValue("message", out message);
+        }
+
+        Console.WriteLine(message ?? "Error");
 
         return deviceCode;
     }
 
-    private static async Task GetTokensAsync(string deviceCode)
+    private static async Task<bool> GetTokensAsync(string deviceCode)
     {
         // generate url for http request
         string url = string.Format(TOKEN_ENDPOINT_URL, _settings.TenantId);
@@ -110,11 +133,22 @@ public class GraphHelper
         string jsonString = await response.Content.ReadAsStringAsync();
         var tokenResponse = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonString);
         
-        // store token values
-        tokenResponse.TryGetValue("refresh_token", out refreshToken);
-        tokenResponse.TryGetValue("access_token", out accessToken);
-        tokenResponse.TryGetValue("expires_in", out tokenLifetime);
+        // catch error if user didn't authenticate (yet)
+        if (tokenResponse != null)
+        {
+            tokenResponse.TryGetValue("error", out var error);
+            if (error != null) return false;
+
+            // store token values
+            tokenResponse.TryGetValue("refresh_token", out refreshToken);
+            tokenResponse.TryGetValue("access_token", out accessToken);
+            tokenResponse.TryGetValue("expires_in", out tokenLifetime);
+        }
+        else return false;
+
         millis = DateTimeOffset.Now.ToUnixTimeMilliseconds();
+
+        return true;
     }
 
     private static async Task RefreshTokensAsync()
@@ -137,10 +171,14 @@ public class GraphHelper
         HttpResponseMessage response = await _httpClient.PostAsync(url, data);
         string jsonString = await response.Content.ReadAsStringAsync();
         var tokenResponse = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonString);
-        
-        tokenResponse.TryGetValue("access_token", out accessToken);
-        tokenResponse.TryGetValue("refresh_token", out refreshToken);
-        tokenResponse.TryGetValue("expires_in", out tokenLifetime);
+
+        if (tokenResponse != null)
+        {
+            tokenResponse.TryGetValue("access_token", out accessToken);
+            tokenResponse.TryGetValue("refresh_token", out refreshToken);
+            tokenResponse.TryGetValue("expires_in", out tokenLifetime);
+        }
+
         millis = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         
         // refresh access token in auth-provider
@@ -151,7 +189,7 @@ public class GraphHelper
     public static async Task CheckTokenLifetimeAsync()
     {
         long temp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-        if (temp - millis > Int32.Parse(tokenLifetime))
+        if ((temp - millis) / 1000 > Int32.Parse(tokenLifetime))
         {
             Console.Write("Refreshing Tokens...");
             await RefreshTokensAsync();
@@ -182,7 +220,7 @@ public class GraphHelper
         return accessToken;
     }
 
-    public static Task<User?> GetUserAsync()
+    public static Task<Microsoft.Graph.Models.User?> GetUserAsync()
     {
         // Ensure client isn't null
         _ = _userClient ??
@@ -378,5 +416,35 @@ public class GraphHelper
             requestConfiguration.Headers.Add("ConsistencyLevel", "eventual");
         });
     }
+
+    public static async Task<string> GetMeAsync()
+    {
+        var request = _builder.GetRequest();
+        var response = await _httpClient.SendAsync(request);
+
+        string jsonString = await response.Content.ReadAsStringAsync();
+        var user = JsonConvert.DeserializeObject<User>(jsonString);
+        
+        Console.WriteLine(jsonString);
+
+        return user.displayName;
+    }
+    
+    class User
+    {
+        public string odata { get; set; }
+        public string[] businessPhones { get; set; }
+        public string displayName { get; set; }
+        public string givenName { get; set; }
+        public string jobTitle { get; set; }
+        public string mail { get; set; }
+        public string mobilePhone { get; set; }
+        public string officeLocation { get; set; }
+        public string preferredLanguage { get; set; }
+        public string surname { get; set; }
+        public string userPrincipalName { get; set; }
+        public string id { get; set; }
+    }
+
      
 }
